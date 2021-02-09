@@ -15,20 +15,24 @@
 //  to buy & sell goods using Quinto coins
 // -----------------------------------------
 //
-float   VERSION = 5.1;    // 21 October 2020
+float   VERSION = 5.2;    // 9 February 2021
 integer RSTATE = 1;       // RSTATE = 1 for release, 0 for beta, -1 for Release candidate
-
+//
 integer DEBUGMODE = FALSE;
 debug(string text)
 {
     if (DEBUGMODE == TRUE) llOwnerSay("DEBUG:" + llToUpper(llGetScriptName()) + " " + text);
 }
-
+//
 // Server URLs
 string URL =   "quintonia.net/index.php?option=com_quinty&format=raw&";
 string ImageURL = "quintonia.net/images/logo/qex.png";
 string BASEURL;
 string BASEIMAGEURL;
+//
+string REGURL   = "https://quintonia.net/register";
+//
+string marketType = "market_grocery.inf";  // or  market_hardware.inf  or  market_concessions.inf  or  market_bazaar.inf
 //
 // Can be overridden by config notecard
 string  exchangeType = "grocery";           // TYPE=Grocery         can be 'grocery', 'bazaar', 'hardware' or 'concessions'   [bazaar is grocery minus concessions items]
@@ -56,7 +60,7 @@ string    TXT_CHECKING_POINTS      =    "Checking...";
 string    TXT_CLICK_FOR_MENU       =    "Click for menu...";
 string    TXT_CLOSE                =    "CLOSE";
 string    TXT_COINS                =    "Coins";
-string    TXT_COIN_SYMBOL          =    "ϙ";
+string    TXT_COIN_SYMBOL          =    "Q";
 string    TXT_CREDITED             =    "You have been credited ";
 string    TXT_EMPTYING             =    "emptying";
 string    TXT_ERROR_DISABLED       =    "Sorry, system is currently disabled";
@@ -101,12 +105,11 @@ string    TXT_SELL_ONLY            =    "Sell only";
 string    TXT_TOPTEN               =    "Quintonia Points Top TEN";
 string    TXT_YOU_HAVE             =    "You have";
 string    TXT_LANGUAGE             =    "@";
-
+//
 string TXT_RECENT_ACTIVITY = "Your Recent Activity";
 string TXT_ACTIVITY = "Activity";
 string TXT_DETAILS = "Details";
 string TXT_RESET = "RESET";
-
 //
 string    TXT_DAYS="Days";
 string    TXT_SUN="Sun";
@@ -124,8 +127,6 @@ vector WHITE       = <1.0, 1.0, 1.0>;
 integer CREDIT = 1;
 integer DEBIT = -1;
 string farmName = "My Farm";
-string REGURL   = "https://quintonia.net/register";
-string marketType = "market_grocery.inf";  // or  market_hardware.inf  or  market_concessions.inf  or  market_bazaar.inf
 string PASSWORD="*";
 string stockNC = "stklst";
 integer quinActive;
@@ -178,6 +179,7 @@ loadConfig()
                      else if (cmd == "SENSOR_DISTANCE") SENSOR_DISTANCE = (integer)val;
                      else if (cmd == "REZ_POSITION") rezzPosition = (vector)val;
                      else if (cmd == "TIME_OFFSET") offset = (integer)val;
+                     else if (cmd == "LANG") languageCode = val;
                      else if (cmd == "USE_HTTPS") useHTTPS = (integer)val;
             }
         }
@@ -313,7 +315,6 @@ saveToDesc()
     llSetObjectDesc("E;" +(string)accessMode+";" +languageCode + ";" +farmName +";" +exchangeType +";" +(string)opMode);
     if (exchangeType == "grocery") marketType = "market_grocery.inf"; else if (exchangeType == "hardware") marketType = "market_hardware.inf"; else if (exchangeType == "concessions") marketType = "market_concessions.inf"; else marketType = "market_bazaar.inf";
 }
-
 
 loadStock()
 {
@@ -478,14 +479,17 @@ messageScreen(string msg)
             CommandList = osMovePen(CommandList, xpos, 420);        // Position the text
             CommandList = osDrawText(CommandList, msg);             // Place the text
             // show exchange type
-            CommandList = osSetFontSize(CommandList, 8);
+            CommandList = osSetFontSize(CommandList, 7);
             CommandList = osSetPenColor(CommandList, "black");
                  if (exchangeType == "grocery")   tmpStr =  TXT_GROCERY;
             else if (exchangeType == "hardware") tmpStr =  TXT_HARDWARE;
             else if (exchangeType == "concessions") tmpStr = TXT_CONCESSIONS;
             else if (exchangeType == "bazaar") tmpStr =  TXT_BAZAAR;
-            if (RSTATE == 0) tmpStr+= "(Beta)"; else if (RSTATE == -1) tmpStr+= "(RC)";
-            CommandList = osMovePen(CommandList, 420, 499);        // Position the text
+            // Show version info
+            tmpStr += " (V" +qsFixPrecision(VERSION, 2);
+            if (RSTATE == 0) tmpStr+= " Beta"; else if (RSTATE == -1) tmpStr+= " RC";
+            tmpStr += ")"; 
+            CommandList = osMovePen(CommandList, 420, 500);        // Position the text
             CommandList = osDrawText(CommandList, tmpStr);         // Place the text
         }
         else
@@ -522,7 +526,7 @@ showPrices()
         string body = "width:512,height:512";
         string CommandList = "";  // Storage for our drawing commands
         string statusColour;
-        CommandList = osMovePen(CommandList, 8, 8);                  // Upper left corner
+        CommandList = osMovePen(CommandList, 8, 8);                      // Upper left corner
         CommandList = osDrawImage(CommandList, 230, 40, BASEIMAGEURL );  // Display small logo
         // show exchange type
         CommandList = osSetFontSize(CommandList, 10);
@@ -531,7 +535,10 @@ showPrices()
         else if (exchangeType == "hardware") tmpStr =  TXT_HARDWARE;
         else if (exchangeType == "concessions") tmpStr = TXT_CONCESSIONS;
         else if (exchangeType == "bazaar") tmpStr =  TXT_BAZAAR;
-        if (RSTATE == 0) tmpStr+= "(Beta) "; else if (RSTATE == -1) tmpStr+= "(RC) ";
+         // Show version info
+        tmpStr += " (V" +qsFixPrecision(VERSION, 2);
+        if (RSTATE == 0) tmpStr+= " Beta"; else if (RSTATE == -1) tmpStr+= " RC";
+        tmpStr += ")"; 
         // Show last update info
         tmpStr += " - " +TXT_LAST_UPDATE + ": " +getDay(offset) +" @ "  +getGMTtime(offset);
         CommandList = osMovePen(CommandList, 60, 40);        // Position the text
@@ -557,7 +564,7 @@ showPrices()
                     what = "SF " + product;
                     if (llGetInventoryType(what) != INVENTORY_OBJECT)
                     {
-                        product = "◦ ";
+                        product = "x ";
                     }
                     else
                     {
@@ -566,7 +573,7 @@ showPrices()
 
                             if (inStock(what) == FALSE)
                             {
-                                product = "◦ ";
+                                product = "x ";
                             }
                             else
                             {
@@ -591,7 +598,7 @@ showPrices()
                     what = "SF " + product;
                     if (llGetInventoryType(what) != INVENTORY_OBJECT)
                     {
-                        product = "◦ ";
+                        product = "x ";
                     }
                     else
                     {
@@ -600,7 +607,7 @@ showPrices()
 
                             if (inStock(what) == FALSE)
                             {
-                                product = "◦ ";
+                                product = "x ";
                             }
                             else
                             {
@@ -707,7 +714,6 @@ psys(key k)
                 ]);
 }
 
-
 string getGMTtime(integer vIntLocalOffset)
 {
     //-- get the correct time in seconds for the given offset
@@ -750,6 +756,14 @@ string getDay(integer offset)
     return llList2String(weekdays, day_of_week);
 }
 
+string qsFixPrecision(float input, integer precision)
+{
+    precision = precision - 7 - (precision < 1);
+    if(precision < 0)
+        return llGetSubString((string)input, 0, precision);
+    return (string)input;
+}
+
 // --- STATE DEFAULT -- //
 
 default
@@ -785,10 +799,11 @@ default
             ownKey = llGetKey();
             modeNames = [TXT_EVERYONE, TXT_GROUP, TXT_LOCAL];
             messageScreen(TXT_CLICK_FOR_MENU);
+            llListen(FARM_CHANNEL, "", "", "");
             activate();
         }
     }
-
+    
     changed(integer change)
     {
         if (change & CHANGED_INVENTORY)
@@ -871,7 +886,7 @@ default
         }
         if (userToPay == owner)
         {
-            opts += [TXT_OPTIONS, TXT_RESET];
+             opts += [TXT_OPTIONS, TXT_RESET];
         }
         startListen();
         llDialog(userToPay, TXT_SELECT, opts, chan(llGetKey()));
@@ -982,224 +997,214 @@ default
 
     listen(integer c, string nm, key id, string m)
     {
-        debug("LISTEN: " +m +" (status= " +status +")");
-        if (c != FARM_CHANNEL)
+        debug("LISTEN_CHAN="+(string)c +" MSG=" +m +" (status= " +status +")");
+        if (m == TXT_CLOSE)
         {
-            if (m == TXT_CLOSE)
-            {
-                llListenRemove(listener);
-                listener = -1;
-                return;
-            }
-            else if (m == TXT_SELL)
-            {
-                llSetColor(GREEN, 4);
-                status = "SellGoods";
-                //userToPay = id;
-                postMessage("task=getmenu&data1=" + (string)id +"&data2=" +marketType);
-            }
-            else if (m == TXT_BUY)
-            {
-                llSetColor(GREEN, 4);
-                status = "BuyGoods";
-                //userToPay = id;
-                postMessage("task=getmenu&data1=" + (string)id +"&data2=" +marketType);
-                return;
-            }
-            else if (m == TXT_PRICES)
-            {
-                llSetColor(GREEN, 4);
-                llListenRemove(listener);
-                listener = -1;
-                prices = [];
-                status = "priceReq";
-                postMessage("task=getmenu&data1=" + (string)id +"&data2=" +marketType);
-                return;
-            }
-            else if (m == TXT_ACTIVATE)
-            {
-                activate();
-            }
-            else if (m == TXT_OPTIONS)
-            {
-                list opts = [TXT_FARM_NAME, TXT_EX_TYPE, TXT_CLOSE, TXT_ACCESS_LEVEL, TXT_OPERATION_MODE];
-                startListen();
-                string tmpStr = "\n" + TXT_ACCESS_LEVEL +":" + llList2String(modeNames, accessMode) + "\t" + TXT_OPERATION_MODE + ":";
-                if (opMode == 1) tmpStr += TXT_ALWAYS_SELL; else tmpStr += TXT_BUY_SELL;
-                llDialog(userToPay, "\n" + TXT_SELECT + tmpStr , opts, chan(llGetKey()));
-                llSetTimerEvent(300);
-            }
-            else if (m == TXT_ACCESS_LEVEL)
-            {
-                list opts = [TXT_EVERYONE, TXT_GROUP, TXT_LOCAL, TXT_CLOSE];
-                startListen();
-                string tmpStr = "\n" + TXT_ACCESS_LEVEL +":" + llList2String(modeNames, accessMode);
-                llDialog(userToPay, "\n" + TXT_SELECT + tmpStr , opts, chan(llGetKey()));
-                llSetTimerEvent(300);
-            }
-            else if (m == TXT_FARM_NAME)
-            {
-                startListen();
-                llTextBox(userToPay, TXT_FARM_NAME, chan(llGetKey()));
-                status = "getName";
-                llSetTimerEvent(300);
-            }
-            else if (m == TXT_EX_TYPE)
-            {
-                list opts = [TXT_GROCERY, TXT_BAZAAR, TXT_CONCESSIONS, TXT_HARDWARE, TXT_CLOSE];
-                startListen();
-                llDialog(userToPay, "\n" + TXT_SELECT , opts, chan(llGetKey()));
-                llSetTimerEvent(300);
-            }
-            else if (m == TXT_GROCERY)
-            {
-                exchangeType = "grocery";
-                messageScreen(TXT_READY +"...");
-                llOwnerSay(TXT_EX_TYPE + ": " + TXT_GROCERY);
-            }
-            else if (m == TXT_HARDWARE)
-            {
-                exchangeType = "hardware";
-                messageScreen(TXT_READY +"...");
-                llOwnerSay(TXT_EX_TYPE + ": " + TXT_HARDWARE);
-            }
-            else if (m == TXT_CONCESSIONS)
-            {
-                exchangeType = "concessions";
-                messageScreen(TXT_READY +"...");
-                llOwnerSay(TXT_EX_TYPE + ": " + TXT_CONCESSIONS);
-            }
-            else if (m == TXT_BAZAAR)
-            {
-                exchangeType = "bazaar";
-                messageScreen(TXT_READY +"...");
-                llOwnerSay(TXT_EX_TYPE + ": " + TXT_BAZAAR);
-            }
+            llListenRemove(listener);
+            listener = -1;
+            return;
+        }
+        else if (m == TXT_SELL)
+        {
+            llSetColor(GREEN, 4);
+            status = "SellGoods";
+            //userToPay = id;
+            postMessage("task=getmenu&data1=" + (string)id +"&data2=" +marketType);
+        }
+        else if (m == TXT_BUY)
+        {
+            llSetColor(GREEN, 4);
+            status = "BuyGoods";
+            //userToPay = id;
+            postMessage("task=getmenu&data1=" + (string)id +"&data2=" +marketType);
+            return;
+        }
+        else if (m == TXT_PRICES)
+        {
+            llSetColor(GREEN, 4);
+            llListenRemove(listener);
+            listener = -1;
+            prices = [];
+            status = "priceReq";
+            postMessage("task=getmenu&data1=" + (string)id +"&data2=" +marketType);
+            return;
+        }
+        else if (m == TXT_ACTIVATE)
+        {
+            activate();
+        }
+        else if (m == TXT_OPTIONS)
+        {
+            list opts = [TXT_FARM_NAME, TXT_EX_TYPE, TXT_CLOSE, TXT_ACCESS_LEVEL, TXT_OPERATION_MODE];
+            startListen();
+            string tmpStr = "\n" + TXT_ACCESS_LEVEL +":" + llList2String(modeNames, accessMode) + "\t" + TXT_OPERATION_MODE + ":";
+            if (opMode == 1) tmpStr += TXT_ALWAYS_SELL; else tmpStr += TXT_BUY_SELL;
+            llDialog(userToPay, "\n" + TXT_SELECT + tmpStr , opts, chan(llGetKey()));
+            llSetTimerEvent(300);
+        }
+        else if (m == TXT_ACCESS_LEVEL)
+        {
+            list opts = [TXT_EVERYONE, TXT_GROUP, TXT_LOCAL, TXT_CLOSE];
+            startListen();
+            string tmpStr = "\n" + TXT_ACCESS_LEVEL +":" + llList2String(modeNames, accessMode);
+            llDialog(userToPay, "\n" + TXT_SELECT + tmpStr , opts, chan(llGetKey()));
+            llSetTimerEvent(300);
+        }
+        else if (m == TXT_FARM_NAME)
+        {
+            startListen();
+            llTextBox(userToPay, TXT_FARM_NAME, chan(llGetKey()));
+            status = "getName";
+            llSetTimerEvent(300);
+        }
+        else if (m == TXT_EX_TYPE)
+        {
+            list opts = [TXT_GROCERY, TXT_BAZAAR, TXT_CONCESSIONS, TXT_HARDWARE, TXT_CLOSE];
+            startListen();
+            llDialog(userToPay, "\n" + TXT_SELECT , opts, chan(llGetKey()));
+            llSetTimerEvent(300);
+        }
+        else if (m == TXT_GROCERY)
+        {
+            exchangeType = "grocery";
+            messageScreen(TXT_READY +"...");
+            llOwnerSay(TXT_EX_TYPE + ": " + TXT_GROCERY);
+        }
+        else if (m == TXT_HARDWARE)
+        {
+            exchangeType = "hardware";
+            messageScreen(TXT_READY +"...");
+            llOwnerSay(TXT_EX_TYPE + ": " + TXT_HARDWARE);
+        }
+        else if (m == TXT_CONCESSIONS)
+        {
+            exchangeType = "concessions";
+            messageScreen(TXT_READY +"...");
+            llOwnerSay(TXT_EX_TYPE + ": " + TXT_CONCESSIONS);
+        }
+        else if (m == TXT_BAZAAR)
+        {
+            exchangeType = "bazaar";
+            messageScreen(TXT_READY +"...");
+            llOwnerSay(TXT_EX_TYPE + ": " + TXT_BAZAAR);
+        }
 
-            else if (m == TXT_EVERYONE)
+        else if (m == TXT_EVERYONE)
+        {
+            accessMode = 0;
+            llOwnerSay(TXT_ACCESS_LEVEL + ": " + TXT_EVERYONE);
+        }
+        else if (m == TXT_GROUP)
+        {
+            accessMode = 1;
+            llOwnerSay(TXT_ACCESS_LEVEL + ": " + TXT_GROUP);
+        }
+        else if (m == TXT_LOCAL)
+        {
+            accessMode = 2;
+            llOwnerSay(TXT_ACCESS_LEVEL + ": " + TXT_LOCAL);
+        }
+        else if (m == TXT_OPERATION_MODE)
+        {
+            list opts = [TXT_ALWAYS_SELL, TXT_BUY_SELL, TXT_CLOSE];
+            startListen();
+            llDialog(userToPay, "\n" + TXT_SELECT , opts, chan(llGetKey()));
+            llSetTimerEvent(300);
+        }
+        else if (m == TXT_ALWAYS_SELL)
+        {
+            opMode = 1;
+            stockItems = [];
+            showPrices();
+            llOwnerSay(TXT_OPERATION_MODE + ": " + TXT_ALWAYS_SELL);
+        }
+        else if (m == TXT_BUY_SELL)
+        {
+            opMode = 0;
+            loadStock();
+            showPrices();
+            llOwnerSay(TXT_OPERATION_MODE + ": " + TXT_BUY_SELL);
+        }
+        else if (m == TXT_POINTS)
+        {
+            llSetColor(GREEN, 4);
+            llMessageLinked(LINK_SET, 1, "CMD_CLEAR", "");
+            llRegionSayTo(userToPay, 0, TXT_CHECKING_POINTS);loadStock();
+            status = "pointsQuery";
+            postMessage("task=points&data1=" + (string)id);
+            userToPay = id;
+        }
+
+        else if (m == TXT_COINS)
+        {
+            llSetColor(GREEN, 4);
+            llRegionSayTo(userToPay, 0, TXT_CHECKING_POINTS);
+            status = "coinsQuery";
+            postMessage("task=coins&data1=" + (string)id);
+            //userToPay = NULL_KEY;
+        }
+
+        else if (m == TXT_LANGUAGE)
+        {
+            llMessageLinked(LINK_THIS, 1, "LANG_MENU|" + languageCode, id);
+        }
+        else if (m == ">>")
+        {
+            startOffset += 10;
+            if (status == "SellGoods")
             {
-                accessMode = 0;
-                llOwnerSay(TXT_ACCESS_LEVEL + ": " + TXT_EVERYONE);
+                //if (startOffset >llGetListLength(sellItems)) startOffset=0;
+                multiPageMenu(id, TXT_SELL, sellItems);
             }
-            else if (m == TXT_GROUP)
+            else
             {
-                accessMode = 1;
-                llOwnerSay(TXT_ACCESS_LEVEL + ": " + TXT_GROUP);
+                //if (startOffset >llGetListLength(items)) startOffset=0;
+                multiPageMenu(id, TXT_BUY, items);
             }
-            else if (m == TXT_LOCAL)
+        }
+        // Run out of buttons, check status
+        else if (status == "getName")
+        {
+            farmName = m;
+            status = "";
+            messageScreen(TXT_READY +"...");
+        }
+        else if (status == "SellGoods")
+        {
+            string what = llGetSubString(m, 4,-1);
+            integer idx = llListFindList(items, m);
+            if (idx>=0)
             {
-                accessMode = 2;
-                llOwnerSay(TXT_ACCESS_LEVEL + ": " + TXT_LOCAL);
+                itemPrice  = llList2String(prices, idx);
+            //    userToPay = id;
+                lookingFor = "SF " + llList2String(items,idx);
+                llSensor(lookingFor, "",SCRIPTED,  SENSOR_DISTANCE, PI);
             }
-            else if (m == TXT_OPERATION_MODE)
-            {
-                list opts = [TXT_ALWAYS_SELL, TXT_BUY_SELL, TXT_CLOSE];
-                startListen();
-                llDialog(userToPay, "\n" + TXT_SELECT , opts, chan(llGetKey()));
-                llSetTimerEvent(300);
-            }
-            else if (m == TXT_ALWAYS_SELL)
-            {
-                opMode = 1;
-                stockItems = [];
-                showPrices();
-                llOwnerSay(TXT_OPERATION_MODE + ": " + TXT_ALWAYS_SELL);
-            }
-            else if (m == TXT_BUY_SELL)
-            {
-                opMode = 0;
-                loadStock();
-                showPrices();
-                llOwnerSay(TXT_OPERATION_MODE + ": " + TXT_BUY_SELL);
-            }
-            else if (m == TXT_POINTS)
-            {
-                llSetColor(GREEN, 4);
-                llMessageLinked(LINK_SET, 1, "CMD_CLEAR", "");
-                llRegionSayTo(userToPay, 0, TXT_CHECKING_POINTS);loadStock();
-                status = "pointsQuery";
-                postMessage("task=points&data1=" + (string)id);
-                userToPay = id;
-            }
-            else if (m == TXT_COINS)
-            {
-                llSetColor(GREEN, 4);
-                llRegionSayTo(userToPay, 0, TXT_CHECKING_POINTS);
-                status = "coinsQuery";
-                postMessage("task=coins&data1=" + (string)id);
-                //userToPay = NULL_KEY;
-            }
-            else if (m == TXT_LANGUAGE)
-            {
-                llMessageLinked(LINK_THIS, 1, "LANG_MENU|" + languageCode, id);
-            }
-            else if (m == ">>")
-            {
-                startOffset += 10;
-                if (status == "SellGoods")
-                {
-                    //if (startOffset >llGetListLength(sellItems)) startOffset=0;
-                    multiPageMenu(id, TXT_SELL, sellItems);
-                }
-                else
-                {
-                    //if (startOffset >llGetListLength(items)) startOffset=0;
-                    multiPageMenu(id, TXT_BUY, items);
-                }
-            }
-            else if (m = TXT_RESET)
-            {
-                llMessageLinked(LINK_SET, 1, "RESET", "");
-                llSleep(0.2);
-                llResetScript();
-            }
-            //
-            // Run out of buttons, check status
-            else if (status == "getName")
-            {
-                farmName = m;
-                status = "";
-                messageScreen(TXT_READY +"...");
-            }
-            else if (status == "SellGoods")
-            {
-                string what = llGetSubString(m, 4,-1);
-                integer idx = llListFindList(items, m);
-                if (idx>=0)
-                {
-                    itemPrice  = llList2String(prices, idx);
-                //    userToPay = id;
-                    lookingFor = "SF " + llList2String(items,idx);
-                    llSensor(lookingFor, "",SCRIPTED,  SENSOR_DISTANCE, PI);
-                }
-                status = "WaitItem";
-            }
-            else if (status == "BuyGoods")
-            {
-                llSetColor(GREEN, 4);
-                integer idx = llListFindList(items, m);
-                itemPrice = llList2String(prices, idx);
-                lookingFor = m;
-                // Check they have enough points
-                status = "balCheck";
-        //        postMessage("task=points&data1=" + (string)userToPay);
-                postMessage("task=coins&data1=" + (string)userToPay);
-            //    userToPay = NULL_KEY;
-            }
-            else if (status == "WaitItem")
-            {
-                debug("status = WaitItem");
-            }
-            saveToDesc();
+            status = "WaitItem";
+        }
+        else if (status == "BuyGoods")
+        {
+            llSetColor(GREEN, 4);
+            integer idx = llListFindList(items, m);
+            itemPrice = llList2String(prices, idx);
+            lookingFor = m;
+            // Check they have enough points
+            status = "balCheck";
+            // postMessage("task=points&data1=" + (string)userToPay);
+            postMessage("task=coins&data1=" + (string)userToPay);
+            // userToPay = NULL_KEY;
+        }
+        else if (status == "WaitItem")
+        {
+            debug("status = WaitItem");
         }
         else
         {
-            // FARM_CHANNEL message
+            // FARM_CHANNEL message ?
             list tk = llParseString2List(m, ["|"], []);
             string cmd = llList2String(tk, 0);
             if (llList2String(tk, 1) == PASSWORD)
             {
-
                 if (cmd == "INV_QRY")
                 {
                     string object = "SF " + llList2String(tk, 3);
@@ -1219,6 +1224,7 @@ default
                 }
             }
         }
+        saveToDesc();
     }
 
     sensor(integer n)
