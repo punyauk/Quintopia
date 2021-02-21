@@ -6,7 +6,7 @@
 //  Mods by Cnayl Rainbow, hg.osgrid.org:80:mintor
 
 // Used to check for updates from Quintonia product update server
-float VERSION = 4.3;  // 11 December 2020
+float VERSION = 4.4;  // 15 February 2021
 string NAME = "SF Farmer NPC";
 
 integer DEBUGMODE = FALSE;
@@ -581,6 +581,18 @@ doWander(integer forceAway)
         msgListener("SENSOR|"+lookingFor+"|"+(string)RADIUS+"|"+(string)PI);
 }
 
+string qsFixPrecision(float input, integer precision)
+{
+    precision = precision - 7 - (precision < 1);
+    if(precision < 0)
+        return llGetSubString((string)input, 0, precision);
+    return (string)input;
+}
+
+string showVer()
+{
+    return qsFixPrecision(VERSION, 2);        
+}
 
 default
 {
@@ -603,7 +615,7 @@ default
 
     dataserver(key kk, string m)
     {
-    //    debug("dataserver: " + m + " key " +(string)kk);
+        debug("dataserver: " + m + " key " +(string)kk);
         list tk = llParseStringKeepNulls(m, ["|"] , []);
         string cmd = llList2Key(tk,0);
 
@@ -805,9 +817,10 @@ default
         }
         else if (m == TXT_DEBUG)
         {
-            llSay(0, "waitForItem="+waitForItem+" targetTree="+(string)targetTree+" lookingFor="+lookingFor+" listenerKey=" + (string)listenerKey);
+            llOwnerSay("waitForItem="+waitForItem+" targetTree="+(string)targetTree+" lookingFor="+lookingFor+" listenerKey=" + (string)listenerKey);
             llOwnerSay(llList2CSV(TREENAMES));
             llOwnerSay(llList2CSV(TREEPRODUCTS));
+            llOwnerSay("V:" + showVer());
         }
         else if (m == TXT_NPC_SELECT)
         {
@@ -867,7 +880,7 @@ default
         }
         llSetTimerEvent(300);
         startListen();
-        llDialog(toucher, TXT_SELECT, opts, chan(llGetKey()));
+        llDialog(toucher,  llGetObjectName() +  " V:"+showVer()+"\n \n" +TXT_SELECT, opts, chan(llGetKey()));
     }
 
     timer()

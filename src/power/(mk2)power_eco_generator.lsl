@@ -168,7 +168,7 @@ refresh()
             }
             else
             {
-                effi = 10 - llRound(angle * PI);  // 0 for perfect, approx 10 for worse case
+                effi = 10 - llRound(angle * PI);  // (10 - 0) for perfect, (10 - ~10) for worse case
                 effi = 10*effi;
             }
             if (llGetUnixTime()-lastTs > period)
