@@ -1,6 +1,6 @@
 // petify.lsl
 
-float   VERSION = 1.2;    // RC 27 November 2020
+float   VERSION = 1.3;    // RC 13 March 2021
 integer RSTATE  = -1;     // RSTATE = 1 for release, 0 for beta, -1 for Release candidate
 
 //
@@ -34,6 +34,8 @@ string TXT_INFO="Animal/Pet converter";
 string TXT_PETIFY="Animal to Pet";
 string TXT_DEPETIFY="Pet to Animal";
 string TXT_CAUTION="Caution: Animal will resort to it's true age!";
+string TXT_TOO_MANY="Too many animals detected";
+string TXT_REDUCE="Please reduce range and stand close to the animal you wish to transform";
 string TXT_LANGUAGE="@";
 //
 string  SUFFIX = "A2";
@@ -135,6 +137,8 @@ loadLanguage(string langCode)
                     else if (cmd == "TXT_NEED_FOOD") TXT_NEED_FOOD = val;
                     else if (cmd == "TXT_OFF") TXT_OFF = val;
                     else if (cmd == "TXT_ON") TXT_ON = val;
+                    else if (cmd == "TXT_TOO_MANY") TXT_TOO_MANY = val;
+                    else if (cmd == "TXT_REDUCE") TXT_REDUCE = val;
                     else if (cmd == "TXT_LANGUAGE") TXT_LANGUAGE = val;
                 }
             }
@@ -344,6 +348,13 @@ default
             llOwnerSay(TXT_NOT_FOUND);
             llSetText(TXT_NOT_FOUND, <0.7, 0.1, 0.5>, 1.0);
             llSetTimerEvent(5);
+        }
+
+        else if (n > 11)
+        {
+            llOwnerSay(TXT_TOO_MANY +"\n" + TXT_REDUCE);
+            llSetText(TXT_TOO_MANY +"\n" + TXT_REDUCE, <0.7, 0.1, 0.5>, 1.0);
+            llSetTimerEvent(10);
         }
         else
         {
