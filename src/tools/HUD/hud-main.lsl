@@ -6,8 +6,8 @@ string TXT_UMBRELLA = "Umbrella";
 //  QUINTONIA FARM HUD - Main script
 // ------------------------------------
 // VERSION & NAME used to check for updates from Quintonia product update server
-float  VERSION = 5.1;            // BETA 15 December 2020
-string subVersion = "Beta";      // Set to "" for release
+float  VERSION = 5.1;            // 20 May 2021
+string subVersion = "";          // Set to "" for release
 string NAME = "SFQ Main-HUD";
 //
 integer DEBUGMODE = FALSE;     // Set this if you want to force startup in debug mode

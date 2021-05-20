@@ -1,5 +1,5 @@
 // config_updater-storage.lsl
-// Version 1.1   8 February 2021 
+// Version 1.2   6 May 2021 
 // Checks for old script values in notecard and if present updates notecard
 
 // Default values, if not overridden in config notecard
@@ -123,7 +123,7 @@ loadConfig()
     newContents += ["# Set to 1 to allow any member of the group to use the 'Add Stock' menu button, 0 to only allow owner"];
     newContents += ["GROUP_STOCK_ADD="+(string)groupAddStock+"\n#"];
     newContents += ["#Float text colour - set as color vector or use  OFF  for no float text"];
-    if ((TXT_COLOR == "ZERO_VECTOR") || (TXT_COLOR == "OFF")) newContents += ["TXT_COLOR=OFF"+"\n#"]; else newContents += ["TXT_COLOR="+neatVector(TXT_COLOR)+"\n#"];
+    if (TXT_COLOR == ZERO_VECTOR) newContents += ["TXT_COLOR=OFF"+"\n#"]; else newContents += ["TXT_COLOR="+neatVector(TXT_COLOR)+"\n#"];
     newContents += ["# Brightness of text 1 to 10 (10 is maximum brightness)"];
     newContents += ["TXT_BRIGHT="+(string)llRound(10*textBrightness)+"\n#"];
     newContents += ["# If your products start with a different prefix set it here"];
